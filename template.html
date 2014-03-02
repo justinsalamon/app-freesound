@@ -54,19 +54,20 @@
 
 
     </div><!-- End of Photo DIV (columnt) -->
-    <span id="timer"></span>
-    / <span id="totalTime"></span>
+    <span id="timer"></span>/<span id="totalTime"></span>
+    <br/>
+    <strong>Start Time: </strong><span id="startTime"></span>
+    <strong>End Time: </strong><span id="endTime"></span>
+    <span id="startTimeSeconds" style="display:none"></span>
+    <span id="endTimeSeconds" style="display:none"></span>
 
-        <div id="answer"> <!-- Start DIV for the submission buttons -->
-            <!-- If the user clicks this button, the saved answer will be value="yes"-->
-            <button class="btn btn-success btn-answer" value='Yes'><i class="icon icon-white icon-thumbs-up"></i> Yes</button>
-            <!-- If the user clicks this button, the saved answer will be value="no"-->
-            <button class="btn btn-danger btn-answer" value='No'><i class="icon icon-white icon-thumbs-down"></i> No</button>
-            <!-- If the user clicks this button, the saved answer will be value="NoPhoto"-->
-            <button class="btn btn-answer" value='NoPhoto'><i class="icon icon-white icon-exclamation"></i> No photo</button>
-            <!-- If the user clicks this button, the saved answer will be value="NotKnown"-->
-            <button class="btn btn-answer" value='NotKnown'><i class="icon icon-white icon-question-sign"></i> I don't know</button>
-        </div><!-- End of DIV for the submission buttons -->
+        <form class="form-inline">
+
+        <input type="text" name="inputTag" id="inputTag" style="display:none">
+        <button class="btn btn-inverse btn-answer disabled" value='addTag' id="addTag" type="button"><i class="icon icon-white icon-plus"></i> Add tag</button>
+
+        </form> 
+
         <!-- Feedback items for the user -->
         <p>You are working now on task: <span id="task-id" class="label label-warning">#</span></p>
         <p>You have completed: <span id="done" class="label label-info"></span> tasks from
@@ -111,6 +112,15 @@
 <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
 <script>
+
+function fromPixelsToSeconds(pixel, duration){ 
+    return ((pixel * duration) / 900)
+}
+
+function fromSecondsToPixels(seconds, duration){ 
+    return Math.round((secons * 900)/ duration);
+}
+
 function loadUserProgress() {
     pybossa.userProgress('freesound').done(function(data){
         var pct = Math.round((data.done*100)/data.total);
@@ -143,18 +153,49 @@ pybossa.taskLoaded(function(task, deferred) {
     slider.css("background", "url(" + task.info.spectral_l +")");
     slider.css("display", "none");
     task.info.slider = slider;
+    //task.answer = [];
 }
     else {
         deferred.resolve(task);
     }
 });
 
+
+
 pybossa.presentTask(function(task, deferred) {
     if ( !$.isEmptyObject(task) ) {
         loadUserProgress();
+        $("#addTag").hide();
 
         $("#spectrals").append(task.info.slider);
 
+         var availableTags = [
+            "engine idling",
+            "car horn",
+            "car brakes",
+            "train brakes",
+            "police siren",
+            "jackhammer",
+            "drilling",
+            "gun shot",
+            "dog bark",
+            "street music",
+            "air conditioner",
+        ];
+        $( "#inputTag" ).autocomplete({
+        source: availableTags
+        });
+
+        $('form').submit(function(e){
+            //$(this).children('input[type=submit]').attr('disabled', 'disabled');
+            // this is just for demonstration
+            e.preventDefault(); 
+        });
+
+        $( "#inputTag" ).on( "autocompleteclose", function( event, ui ) {
+                $("#addTag").removeClass("disabled");
+
+                } );
 
          $( "#slider-audio" ).slider({
                 range: false,
@@ -170,9 +211,14 @@ pybossa.presentTask(function(task, deferred) {
                 range: true,
                 min: 0,
                 max:900,
-                values: [ 75, 300 ],
+                values: [ 450, 460 ],
                 slide: function( event, ui ) {
-                //$( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
+                    $("#inputTag").show();
+                    $("#addTag").show();
+                    $( "#startTime" ).text( buzz.toTimer(fromPixelsToSeconds(ui.values[ 0 ], task.info.duration) ));
+                    $( "#startTimeSeconds" ).text( (fromPixelsToSeconds(ui.values[ 0 ], task.info.duration) ));
+                    $( "#endTime" ).text(buzz.toTimer(fromPixelsToSeconds(ui.values[ 1 ], task.info.duration) ) );
+                    $( "#endTimeSeconds" ).text((fromPixelsToSeconds(ui.values[ 1 ], task.info.duration) ) );
                 }
         });
 
@@ -204,15 +250,22 @@ pybossa.presentTask(function(task, deferred) {
 
         $('.btn-answer').off('click').on('click', function(evt) {
             var answer = $(evt.target).attr("value");
-            if (typeof answer != 'undefined') {
-                //console.log(answer);
-                pybossa.saveTask(task.id, answer).done(function() {
+            if ((typeof answer != 'undefined') && (answer == 'addTag')) {
+                var tag =  {tag: $("#inputTag").val(),
+                            cue:{'start': parseFloat($("#startTimeSeconds").text()),
+                                 'end': parseFloat($("#endTimeSeconds").text())},
+                            };
+                pybossa.saveTask(task.id, tag).done(function() {
                     $("#slider-range-" + task.id).remove();
+                    $("#inputTag").hide();
+                    $("#inputTag").val("");
+                    $("#inputTag").addClas("disabled");
                     task.mySound.unbind("timeupdate");
                     task.mySound.stop();
                     console.log(buzz.sounds);
                     buzz.sounds = [];
                     console.log(buzz.sounds);
+                    $("#addTag").hide();
                     deferred.resolve();
 
                 });
