@@ -45,7 +45,8 @@
     <div class="span12"><!-- Start of Question and Submission DIV (column) -->
         <div id="spectrals"><!-- Start of Photo DIV (column) -->
         </div><!-- End of Photo DIV (columnt) -->
-    <div id="slider-range"></div>
+    <div id="slider-audio" style="margin-top:5px; width:900px"></div>
+    <div id="slider-range" style="margin-top:5px; width:900px"></div>
     <div id="soundClips" class="btn-group"><!-- Start of Photo DIV (column) -->
         <button class="btn btn-inverse" value='Yes' id="play"><i class="icon icon-white icon-play"></i> </button>
             <!-- If the user clicks this button, the saved answer will be value="no"-->
@@ -147,21 +148,33 @@ pybossa.presentTask(function(task, deferred) {
         $("#spectral_" + task.id).show();
 
 
+         $( "#slider-audio" ).slider({
+                range: false,
+                min: 0,
+                max:900,
+                slide: function( event, ui ) {
+                    var seconds = ((ui.value * task.info.duration) / 900);
+                    task.mySound.setTime(seconds);
+                }
+        });
+
          $( "#slider-range" ).slider({
                 range: true,
                 min: 0,
+                max:900,
                 values: [ 75, 300 ],
                 slide: function( event, ui ) {
                 //$( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
                 }
         });
 
+
         task.mySound = new buzz.sound(task.info.freesound_url, {
                 autoplay: true,
                 }
                 );
 
-        $("#totalTime").text(buzz.toTimer( task.mySound.getDuration() ));
+        $("#totalTime").text(buzz.toTimer( task.info.duration ));
         $('#play').on('click', function(){
             task.mySound.togglePlay();
 	    });
@@ -170,12 +183,13 @@ pybossa.presentTask(function(task, deferred) {
             task.mySound.stop();
 	    });
 
-        //task.mySound.bind("progress", function(e){
-
-	    //});
-
         task.mySound.bind("timeupdate", function(e) {
             var timer = buzz.toTimer(this.getTime());
+
+            var position = Math.round((this.getTime() * 900)/ task.info.duration);
+
+            $( "#slider-audio" ).slider( "option", "value", position );
+
             $("#timer").text(timer);
         });
 
