@@ -259,7 +259,7 @@ pybossa.presentTask(function(task, deferred) {
                     $("#slider-range-" + task.id).remove();
                     $("#inputTag").hide();
                     $("#inputTag").val("");
-                    $("#inputTag").addClas("disabled");
+                    $("#inputTag").addClass("disabled");
                     task.mySound.unbind("timeupdate");
                     task.mySound.stop();
                     console.log(buzz.sounds);
