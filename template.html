@@ -134,6 +134,15 @@ pybossa.taskLoaded(function(task, deferred) {
             deferred.resolve(task);
     });
     task.info.img = img;
+
+    var slider = $("<div/>");
+    slider.attr("id", "slider-range-" + task.id);
+    slider.css("margin-top", "5px");
+    slider.css("width", "900px");
+    slider.css("height", "200px");
+    slider.css("background", "url(" + task.info.spectral_l +")");
+    slider.css("display", "none");
+    task.info.slider = slider;
 }
     else {
         deferred.resolve(task);
@@ -144,8 +153,7 @@ pybossa.presentTask(function(task, deferred) {
     if ( !$.isEmptyObject(task) ) {
         loadUserProgress();
 
-        $("#spectrals").append(task.info.img);
-        $("#spectral_" + task.id).show();
+        $("#spectrals").append(task.info.slider);
 
 
          $( "#slider-audio" ).slider({
@@ -158,7 +166,7 @@ pybossa.presentTask(function(task, deferred) {
                 }
         });
 
-         $( "#slider-range" ).slider({
+         $( "#slider-range-" + task.id).slider({
                 range: true,
                 min: 0,
                 max:900,
@@ -168,6 +176,9 @@ pybossa.presentTask(function(task, deferred) {
                 }
         });
 
+        $(".ui-slider-range").css("opacity", "0.7");
+
+        $("#slider-range-" + task.id).show();
 
         task.mySound = new buzz.sound(task.info.freesound_url, {
                 autoplay: true,
@@ -187,9 +198,7 @@ pybossa.presentTask(function(task, deferred) {
             var timer = buzz.toTimer(this.getTime());
 
             var position = Math.round((this.getTime() * 900)/ task.info.duration);
-
             $( "#slider-audio" ).slider( "option", "value", position );
-
             $("#timer").text(timer);
         });
 
@@ -198,7 +207,12 @@ pybossa.presentTask(function(task, deferred) {
             if (typeof answer != 'undefined') {
                 //console.log(answer);
                 pybossa.saveTask(task.id, answer).done(function() {
-                    $("#spectral_" + task.id).remove();
+                    $("#slider-range-" + task.id).remove();
+                    task.mySound.unbind("timeupdate");
+                    task.mySound.stop();
+                    console.log(buzz.sounds);
+                    buzz.sounds = [];
+                    console.log(buzz.sounds);
                     deferred.resolve();
 
                 });
